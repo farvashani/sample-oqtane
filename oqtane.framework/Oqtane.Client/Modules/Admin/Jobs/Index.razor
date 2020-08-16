@@ -1,0 +1,139 @@
+﻿@namespace Oqtane.Modules.Admin.Jobs
+@inherits ModuleBase
+@inject IJobService JobService
+
+@if (_jobs == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <ActionLink Action="Add" Text="Add Job" />
+    <ActionLink Action="Log" Class="btn btn-secondary" Text="View Logs" />
+    <button type="button" class="btn btn-secondary" @onclick="(async () => await Refresh())">Refresh</button>
+    <br /><br />
+
+    <Pager Items="@_jobs">
+        <Header>
+            <th style="width: 1px;">&nbsp;</th>
+            <th style="width: 1px;">&nbsp;</th>
+            <th style="width: 1px;">&nbsp;</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Frequency</th>
+            <th>Next Execution</th>
+            <th style="width: 1px;">&nbsp;</th>
+        </Header>
+        <Row>
+            <td><ActionLink Action="Edit" Parameters="@($"id=" + context.JobId.ToString())" /></td>
+            <td><ActionDialog Header="Delete Job" Message="@("Are You Sure You Wish To Delete This Job?")" Action="Delete" Security="SecurityAccessLevel.Host" Class="btn btn-danger" OnClick="@(async () => await DeleteJob(context))" /></td>
+            <td><ActionLink Action="Log" Class="btn btn-secondary" Parameters="@($"id=" + context.JobId.ToString())" /></td>
+            <td>@context.Name</td>
+            <td>@DisplayStatus(context.IsEnabled, context.IsExecuting)</td>
+            <td>@DisplayFrequency(context.Interval, context.Frequency)</td>
+            <td>@context.NextExecution</td>
+            <td>
+                @if (context.IsStarted)
+                {
+                    <button type="button" class="btn btn-danger" @onclick="(async () => await StopJob(context.JobId))">Stop</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-success" @onclick="(async () => await StartJob(context.JobId))">Start</button>
+                }
+            </td>
+        </Row>
+    </Pager>
+}
+
+@code {
+    private List<Job> _jobs;
+    
+    public override SecurityAccessLevel SecurityAccessLevel { get { return SecurityAccessLevel.Host; } }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _jobs = await JobService.GetJobsAsync();
+    }
+
+    private string DisplayStatus(bool isEnabled, bool isExecuting)
+    {
+        var status = string.Empty;
+        if (!isEnabled)
+        {
+            status = "Disabled";
+        }
+        else
+        {
+            if (isExecuting)
+            {
+                status = "Executing";
+            }
+            else
+            {
+                status = "Idle";
+            }
+        }
+
+        return status;
+    }
+
+
+    private string DisplayFrequency(int interval, string frequency)
+    {
+        var  result = "Every " + interval.ToString() + " ";
+        switch (frequency)
+        {
+            case "m":
+                result += "Minute";
+                break;
+            case "H":
+                result += "Hour";
+                break;
+            case "d":
+                result += "Day";
+                break;
+            case "M":
+                result += "Month";
+                break;
+        }
+        
+        if (interval > 1)
+        {
+            result += "s";
+        }
+        
+        return result;
+    }
+
+    private async Task DeleteJob(Job job)
+    {
+        try
+        {
+            await JobService.DeleteJobAsync(job.JobId);
+            await logger.LogInformation("Job Deleted {Job}", job);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Deleting Job {Job} {Error}", job, ex.Message);
+            AddModuleMessage("Error Deleting Job", MessageType.Error);
+        }
+    }
+
+    private async Task StartJob(int jobId)
+    {
+        await JobService.StartJobAsync(jobId);
+    }
+
+    private async Task StopJob(int jobId)
+    {
+        await JobService.StopJobAsync(jobId);
+    }
+
+    private async Task Refresh()
+    {
+        _jobs = await JobService.GetJobsAsync();
+        StateHasChanged();
+    }
+}

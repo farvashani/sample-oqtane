@@ -1,0 +1,35 @@
+﻿@namespace Oqtane.Modules.Controls
+@inherits ModuleControlBase
+
+@if (Name == Parent.ActiveTab)
+{
+    <div id="@Name" class="tab-pane fade show active" role="tabpanel">
+        @ChildContent
+    </div>
+}
+else
+{
+    <div id="@Name" class="tab-pane fade" role="tabpanel">
+        @ChildContent
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    private TabStrip Parent { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string Name { get; set; } // required - name of the TabPanel
+
+    [Parameter]
+    public string Heading { get; set; } // optional - defaults to name if not specified
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Parent.AddTabPanel((TabPanel)this);
+    }
+}

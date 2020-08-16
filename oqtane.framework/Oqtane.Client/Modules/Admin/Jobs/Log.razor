@@ -1,0 +1,68 @@
+﻿@namespace Oqtane.Modules.Admin.Jobs
+@inherits ModuleBase
+@inject IJobLogService JobLogService
+
+@if (_jobLogs == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+<Pager Items="@_jobLogs">
+    <Header>
+        <th>Name</th>
+        <th>Status</th>
+        <th>Started</th>
+        <th>Finished</th>
+    </Header>
+    <Row>
+        <td>@context.Job.Name</td>
+        <td>@DisplayStatus(context.Job.IsExecuting, context.Succeeded)</td>
+        <td>@context.StartDate</td>
+        <td>@context.FinishDate</td>
+    </Row>
+    <Detail>
+        <td colspan="4">@((MarkupString)context.Notes)</td>
+    </Detail>
+</Pager>
+}
+
+@code {
+    private List<JobLog> _jobLogs;
+    
+    public override SecurityAccessLevel SecurityAccessLevel => SecurityAccessLevel.Host;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _jobLogs = await JobLogService.GetJobLogsAsync();
+        
+        if (PageState.QueryString.ContainsKey("id"))
+        {
+            _jobLogs = _jobLogs.Where(item => item.JobId == Int32.Parse(PageState.QueryString["id"])).ToList();
+        }
+        
+        _jobLogs = _jobLogs.OrderByDescending(item => item.JobLogId).ToList();
+    }
+
+    private string DisplayStatus(bool isExecuting, bool? succeeded)
+    {
+        var status = string.Empty;
+        if (isExecuting)
+        {
+            status = "Executing";
+        }
+        else
+        {
+            if (succeeded != null && succeeded.Value)
+            {
+                status = "Succeeded";
+            }
+            else
+            {
+                status = "Failed";
+            }
+        }
+        
+        return status;
+    }
+}

@@ -1,0 +1,38 @@
+﻿@using Oqtane.Modules.HtmlText.Services
+@namespace Oqtane.Modules.HtmlText
+@inherits ModuleBase
+@inject IHtmlTextService HtmlTextService
+
+@((MarkupString)content)
+
+@if (PageState.EditMode)
+{
+    <br /><ActionLink Action="Edit" EditMode="true" /><br /><br />
+}
+
+@code {
+    public override List<Resource> Resources => new List<Resource>()
+    {
+        new Resource { ResourceType = ResourceType.Stylesheet, Url = ModulePath() + "Module.css" }
+    };
+
+    private string content = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var htmltext = await HtmlTextService.GetHtmlTextAsync(ModuleState.ModuleId);
+            if (htmltext != null)
+            {
+                content = htmltext.Content;
+                content = content.Replace(Constants.ContentUrl, "/" + PageState.Alias.AliasId.ToString() + Constants.ContentUrl);
+            }
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "An Error Occurred Loading Html/Text Content. " + ex.Message);
+            AddModuleMessage(ex.Message, MessageType.Error);
+        }
+    }
+}

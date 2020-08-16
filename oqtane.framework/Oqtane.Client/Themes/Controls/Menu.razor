@@ -1,0 +1,20 @@
+﻿@namespace Oqtane.Themes.Controls
+
+@switch (Orientation)
+{
+    case "Horizontal":
+        <MenuHorizontal/>
+        break;
+    default: // Vertical
+    {
+        <MenuVertical/>
+        break;
+    }
+}
+
+@code{
+
+    [Parameter]
+    public string Orientation { get; set; }
+
+}

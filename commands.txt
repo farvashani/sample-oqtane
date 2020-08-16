@@ -1,0 +1,22 @@
+
+#create a namesapce
+kubectl create namespace mike
+
+#apply deployment
+kubectl -n mike apply -f .\kubernetes\deployment.yaml
+kubectl -n mike delete -f .\kubernetes\deployment.yaml
+
+#apply service
+kubectl -n mike apply -f .\kubernetes\service.yaml
+
+kubectl -n mike delete -f .\kubernetes\service.yaml
+
+
+kubectl get deploy -n mike
+kubectl get pods -n mike
+kubectl get svc -n mike
+
+kubectl describe svc -n mike example-service
+
+
+kubectl -n mike logs example-deploy-65f6bff9d4-g685l

@@ -1,0 +1,36 @@
+﻿@namespace Oqtane.Themes.Controls
+@inherits ThemeControlBase   
+
+@inject NavigationManager NavigationManager
+
+<span class="app-profile">
+    <AuthorizeView>
+        <Authorizing>
+            <text>...</text>
+        </Authorizing>
+        <Authorized>
+            <button type="button" class="btn btn-primary" @onclick="UpdateProfile">@context.User.Identity.Name</button>
+        </Authorized>
+        <NotAuthorized>
+            @if (PageState.Site.AllowRegistration)
+            {
+                <button type="button" class="btn btn-primary" @onclick="RegisterUser">Register</button>
+            }
+        </NotAuthorized>
+    </AuthorizeView>
+</span>
+
+@code {
+
+    private void RegisterUser()
+    {
+        NavigationManager.NavigateTo(NavigateUrl("register"));
+    }
+
+    private void UpdateProfile()
+    {
+        NavigationManager.NavigateTo(NavigateUrl("profile"));
+    }
+}
+
+

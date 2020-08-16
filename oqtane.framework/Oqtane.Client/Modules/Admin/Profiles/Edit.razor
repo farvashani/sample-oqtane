@@ -1,0 +1,175 @@
+﻿@namespace Oqtane.Modules.Admin.Profiles
+@inherits ModuleBase
+@inject NavigationManager NavigationManager
+@inject IProfileService ProfileService
+
+    <table class="table table-borderless">
+        <tr>
+            <td>
+                <Label For="name" HelpText="The name of this field">Name: </Label>
+            </td>
+            <td>
+                <input id="name" class="form-control" @bind="@_name" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="title" HelpText="The title of the field">Title: </Label>
+            </td>
+            <td>
+                <input id="title" class="form-control" @bind="@_title" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="description" HelpText="What the profile field is">Description: </Label>
+            </td>
+            <td>
+                <textarea id="description" class="form-control" @bind="@_description" rows="5"></textarea>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="category" HelpText="What larger category does this field belong to">Category: </Label>
+            </td>
+            <td>
+                <input id="category" class="form-control" @bind="@_category" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="order" HelpText="What place is this field in a larger category list">Order: </Label>
+            </td>
+            <td>
+                <input id="order" class="form-control" @bind="@_vieworder" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="length" HelpText="What is the max amount of characters should this field accept">Length: </Label>
+            </td>
+            <td>
+                <input id="length" class="form-control" @bind="@_maxlength" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="defaultVal" HelpText="What value do you want this field to start with">Default Value: </Label>
+            </td>
+            <td>
+                <input id="defaultVal" class="form-control" @bind="@_defaultvalue" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="required" HelpText="Is a user required to input something into this field?">Required? </Label>
+            </td>
+            <td>
+                <select id="required" class="form-control" @bind="@_isrequired">
+                    <option value="True">Yes</option>
+                    <option value="False">No</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="private" HelpText="Is this field private?">Private? </Label>
+            </td>
+            <td>
+                <select id="private" class="form-control" @bind="@_isprivate">
+                    <option value="True">Yes</option>
+                    <option value="False">No</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+<button type="button" class="btn btn-success" @onclick="SaveProfile">Save</button>
+<NavLink class="btn btn-secondary" href="@NavigateUrl()">Cancel</NavLink>
+
+@code {
+    private int _profileid = -1;
+    private string _name = string.Empty;
+    private string _title = string.Empty;
+    private string _description = string.Empty;
+    private string _category = string.Empty;
+    private string _vieworder = "0";
+    private string _maxlength = "0";
+    private string _defaultvalue = string.Empty;
+    private string _isrequired = "False";
+    private string _isprivate = "False";
+
+    public override SecurityAccessLevel SecurityAccessLevel => SecurityAccessLevel.Admin;
+
+    public override string Actions => "Add,Edit";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (PageState.QueryString.ContainsKey("id"))
+            {
+                _profileid = Int32.Parse(PageState.QueryString["id"]);
+                var profile = await ProfileService.GetProfileAsync(_profileid);
+                if (profile != null)
+                {
+                    _name = profile.Name;
+                    _title = profile.Title;
+                    _description = profile.Description;
+                    _category = profile.Category;
+                    _vieworder = profile.ViewOrder.ToString();
+                    _maxlength = profile.MaxLength.ToString();
+                    _defaultvalue = profile.DefaultValue;
+                    _isrequired = profile.IsRequired.ToString();
+                    _isprivate = profile.IsPrivate.ToString();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Loading Profile {ProfileId} {Error}", _profileid, ex.Message);
+            AddModuleMessage("Error Loading Profile", MessageType.Error);
+        }
+    }
+
+    private async Task SaveProfile()
+    {
+        try
+        {
+            Profile profile;
+            if (_profileid != -1)
+            {
+                profile = await ProfileService.GetProfileAsync(_profileid);
+            }
+            else
+            {
+                profile = new Profile();
+            }
+
+            profile.SiteId = PageState.Site.SiteId;
+            profile.Name = _name;
+            profile.Title = _title;
+            profile.Description = _description;
+            profile.Category = _category;
+            profile.ViewOrder = int.Parse(_vieworder);
+            profile.MaxLength = int.Parse(_maxlength);
+            profile.DefaultValue = _defaultvalue;
+            profile.IsRequired = (_isrequired == null ? false : Boolean.Parse(_isrequired));
+            profile.IsPrivate = (_isprivate == null ? false : Boolean.Parse(_isprivate));
+            if (_profileid != -1)
+            {
+                profile = await ProfileService.UpdateProfileAsync(profile);
+            }else
+            {
+                profile = await ProfileService.AddProfileAsync(profile);
+            }
+
+            await logger.LogInformation("Profile Saved {Profile}", profile);
+            NavigationManager.NavigateTo(NavigateUrl());
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Saving Profile {ProfleId} {Error}", _profileid, ex.Message);
+            AddModuleMessage("Error Saving Profile", MessageType.Error);
+        }
+    }
+}

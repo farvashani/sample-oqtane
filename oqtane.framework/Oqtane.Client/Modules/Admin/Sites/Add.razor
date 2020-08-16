@@ -1,0 +1,408 @@
+﻿@namespace Oqtane.Modules.Admin.Sites
+@inherits ModuleBase
+@inject NavigationManager NavigationManager
+@inject ITenantService TenantService
+@inject IAliasService AliasService
+@inject ISiteService SiteService
+@inject IThemeService  ThemeService
+@inject ISiteTemplateService SiteTemplateService
+@inject IUserService UserService
+@inject IInstallationService InstallationService
+
+@if (_tenants == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+<table class="table table-borderless">
+    <tr>
+        <td>
+            <Label For="name" HelpText="Enter the name of the site">Site Name: </Label>
+        </td>
+        <td>
+            <input id="name" class="form-control" @bind="@_name" />
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <Label For="alias" HelpText="Enter the alias for the server">Aliases: </Label>
+        </td>
+        <td>
+            <textarea id="alias" class="form-control" @bind="@_urls" rows="3"></textarea>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <Label For="defaultTheme" HelpText="Select the default theme for the website">Default Theme: </Label>
+        </td>
+        <td>
+            <select id="defaultTheme" class="form-control" @onchange="(e => ThemeChanged(e))">
+                <option value="-">&lt;Select Theme&gt;</option>
+                @foreach (var theme in _themes)
+                {
+                    <option value="@theme.TypeName">@theme.Name</option>
+                }
+            </select>
+        </td>
+    </tr>
+    @if (_layouts.Count > 0)
+    {
+        <tr>
+            <td>
+                <Label For="defaultLayout" HelpText="Select the default layout for the site">Default Layout: </Label>
+            </td>
+            <td>
+                <select id="defaultLayout" class="form-control" @bind="@_layouttype">
+                    <option value="-">&lt;Select Layout&gt;</option>
+                    @foreach (var layout in _layouts)
+                    {
+                        <option value="@(layout.TypeName)">@(layout.Name)</option>
+                    }
+                </select>
+            </td>
+        </tr>
+    }
+    <tr>
+        <td>
+            <Label For="defaultContainer" HelpText="Select the default container for the site">Default Container: </Label>
+        </td>
+        <td>
+            <select id="defaultContainer" class="form-control" @bind="@_containertype">
+                <option value="-">&lt;Select Container&gt;</option>
+                @foreach (var container in _containers)
+                {
+                    <option value="@container.TypeName">@container.Name</option>
+                }
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <Label For="siteTemplate" HelpText="Select the site template">Site Template: </Label>
+        </td>
+        <td>
+            <select id="siteTemplate" class="form-control" @bind="@_sitetemplatetype">
+                <option value="-">&lt;Select Site Template&gt;</option>
+                @foreach (SiteTemplate siteTemplate in _siteTemplates)
+                {
+                    <option value="@siteTemplate.TypeName">@siteTemplate.Name</option>
+                }
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <Label For="tenant" HelpText="Select the tenant for the site">Tenant: </Label>
+        </td>
+        <td>
+            <select id="tenant" class="form-control" @onchange="(e => TenantChanged(e))">
+                <option value="-">&lt;Select Tenant&gt;</option>
+                <option value="+">&lt;Create New Tenant&gt;</option>
+                @foreach (Tenant tenant in _tenants)
+                {
+                    <option value="@tenant.TenantId">@tenant.Name</option>
+                }
+            </select>
+        </td>
+    </tr>
+    @if (_tenantid == "+")
+    {
+        <tr>
+            <td colspan="2">
+                <hr class="app-rule" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="name" HelpText="Enter the name for the tenant">Tenant Name: </Label>
+            </td>
+            <td>
+                <input id="name" class="form-control" @bind="@_tenantname" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="databaseType" HelpText="Select the database type for the tenant">Database Type: </Label>
+            </td>
+            <td>
+                <select id="databaseType" class="custom-select" @bind="@_databasetype">
+                    <option value="LocalDB">Local Database</option>
+                    <option value="SQLServer">SQL Server</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="server" HelpText="Enter the server for the tenant">Server: </Label>
+            </td>
+            <td>
+                <input id="server" type="text" class="form-control" @bind="@_server" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="database" HelpText="Enter the database for the tenant">Database: </Label>
+            </td>
+            <td>
+                <input id="database" type="text" class="form-control" @bind="@_database" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="integratedSecurity" HelpText="Select if you want integrated security or not">Integrated Security: </Label>
+            </td>
+            <td>
+                <select id="integratedSecurity" class="custom-select" @onchange="SetIntegratedSecurity">
+                    <option value="true" selected>True</option>
+                    <option value="false">False</option>
+                </select>
+            </td>
+        </tr>
+        @if (!_integratedsecurity)
+        {
+            <tr>
+                <td>
+                    <Label For="username" HelpText="Enter the username for the integrated security">Database Username: </Label>
+                </td>
+                <td>
+                    <input id="username" type="text" class="form-control" @bind="@_username" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <Label For="password" HelpText="Enter the password for the integrated security">Database Password: </Label>
+                </td>
+                <td>
+                    <input id="password" type="password" class="form-control" @bind="@_password" />
+                </td>
+            </tr>
+        }
+        <tr>
+            <td>
+                <Label For="hostUsername" HelpText="Enter the username of the host for this site">Host Username:</Label>
+            </td>
+            <td>
+                <input id="hostUsername" class="form-control" @bind="@_hostusername" readonly />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <Label For="hostPassword" HelpText="Enter the password for the host of this site">Host Password:</Label>
+            </td>
+            <td>
+                <input id="hostPassword" type="password" class="form-control" @bind="@_hostpassword" />
+            </td>
+        </tr>
+    }
+</table>
+    <button type="button" class="btn btn-success" @onclick="SaveSite">Save</button>
+    <NavLink class="btn btn-secondary" href="@NavigateUrl()">Cancel</NavLink>
+}
+
+@code {
+    private List<Theme> _themeList;
+    private List<ThemeControl> _themes = new List<ThemeControl>();
+    private List<ThemeControl> _layouts = new List<ThemeControl>();
+    private List<ThemeControl> _containers = new List<ThemeControl>();
+    private List<SiteTemplate> _siteTemplates;
+    private List<Tenant> _tenants;
+    private string _tenantid = "-";
+
+    private string _tenantname = string.Empty;
+    private string _databasetype = "LocalDB";
+    private string _server = "(LocalDb)\\MSSQLLocalDB";
+    private string _database = "Oqtane-" + DateTime.UtcNow.ToString("yyyyMMddHHmm");
+    private string _username = string.Empty;
+    private string _password = string.Empty;
+    private bool _integratedsecurity = true;
+    private string _hostusername = Constants.HostUser;
+    private string _hostpassword = string.Empty;
+
+    private string _name = string.Empty;
+    private string _urls = string.Empty;
+    private string _themetype = "-";
+    private string _layouttype = "-";
+    private string _containertype = "-";
+    private string _sitetemplatetype = "-";
+
+    public override SecurityAccessLevel SecurityAccessLevel => SecurityAccessLevel.Host;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tenants = await TenantService.GetTenantsAsync();
+        _urls = PageState.Alias.Name;
+        _themeList = await ThemeService.GetThemesAsync();
+        _themes = ThemeService.GetThemeControls(_themeList);
+        _siteTemplates = await SiteTemplateService.GetSiteTemplatesAsync();
+    }
+
+    private void TenantChanged(ChangeEventArgs e)
+    {
+        _tenantid = (string)e.Value;
+        if (string.IsNullOrEmpty(_tenantname))
+        {
+            _tenantname = _name;
+        }
+        StateHasChanged();
+    }
+
+    private void SetIntegratedSecurity(ChangeEventArgs e)
+    {
+        if (Convert.ToBoolean((string)e.Value))
+        {
+            _integratedsecurity = true;
+        }
+        else
+        {
+            _integratedsecurity = false;
+        }
+        StateHasChanged();
+    }
+
+    private async void ThemeChanged(ChangeEventArgs e)
+    {
+        try
+        {
+            _themetype = (string)e.Value;
+            if (_themetype != "-")
+            {
+                _layouts = ThemeService.GetLayoutControls(_themeList, _themetype);
+                _containers = ThemeService.GetContainerControls(_themeList, _themetype);
+            }
+            else
+            {
+                _layouts = new List<ThemeControl>();
+                _containers = new List<ThemeControl>();
+            }
+            _layouttype = "-";
+            _containertype = "-";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Loading Pane Layouts For Theme {ThemeType} {Error}", _themetype, ex.Message);
+            AddModuleMessage("Error Loading Pane Layouts For Theme", MessageType.Error);
+        }
+    }
+
+    private async Task SaveSite()
+    {
+        if (_tenantid != "-" && _name != string.Empty && _urls != string.Empty && _themetype != "-" && (_layouts.Count == 0 || _layouttype != "-") && _containertype != "-" && _sitetemplatetype != "-")
+        {
+            var duplicates = new List<string>();
+            var aliases = await AliasService.GetAliasesAsync();
+            foreach (string name in _urls.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (aliases.Exists(item => item.Name == name))
+                {
+                    duplicates.Add(name);
+                }
+            }
+
+            if (duplicates.Count == 0)
+            {
+                InstallConfig config = new InstallConfig();
+
+                if (_tenantid == "+")
+                {
+                    if (!string.IsNullOrEmpty(_tenantname) && _tenants.FirstOrDefault(item => item.Name == _tenantname) == null)
+                    {
+                        // validate host credentials
+                        var user = new User();
+                        user.SiteId = PageState.Site.SiteId;
+                        user.Username = Constants.HostUser;
+                        user.Password = _hostpassword;
+                        user = await UserService.LoginUserAsync(user, false, false);
+                        if (user.IsAuthenticated)
+                        {
+                            if (!string.IsNullOrEmpty(_server) && !string.IsNullOrEmpty(_database))
+                            {
+                                var connectionString = string.Empty;
+                                if (_databasetype == "LocalDB")
+                                {
+                                    connectionString = "Data Source=" + _server + ";AttachDbFilename=|DataDirectory|\\" + _database + ".mdf;Initial Catalog=" + _database + ";Integrated Security=SSPI;";
+                                }
+                                else
+                                {
+                                    connectionString = "Data Source=" + _server + ";Initial Catalog=" + _database + ";";
+
+                                    if (_integratedsecurity)
+                                    {
+                                        connectionString += "Integrated Security=SSPI;";
+                                    }
+                                    else
+                                    {
+                                        connectionString += "User ID=" + _username + ";Password=" + _password;
+                                    }
+                                }
+
+                                config.ConnectionString = connectionString;
+                                config.HostPassword = _hostpassword;
+                                config.HostEmail = user.Email;
+                                config.HostName = user.DisplayName;
+                                config.TenantName = _tenantname;
+                                config.IsNewTenant = true;
+                            }
+                            else
+                            {
+                                AddModuleMessage("You Must Specify A Server And Database", MessageType.Error);
+                            }
+                        }
+                        else
+                        {
+                            AddModuleMessage("Invalid Host Password", MessageType.Error);
+                        }
+                    }
+                    else
+                    {
+                        AddModuleMessage("Tenant Name Is Missing Or Already Exists", MessageType.Error);
+                    }
+                }
+                else
+                {
+                    var tenant = _tenants.FirstOrDefault(item => item.TenantId == int.Parse(_tenantid));
+                    if (tenant != null)
+                    {
+                        config.TenantName = tenant.Name;
+                        config.ConnectionString= tenant.DBConnectionString;
+                        config.IsNewTenant = false;
+                    }
+                }
+
+                if  (!string.IsNullOrEmpty(config.TenantName))
+                {
+                    config.SiteName = _name;
+                    config.Aliases = _urls.Replace("\n", ",");
+                    config.DefaultTheme = _themetype;
+                    config.DefaultLayout = _layouttype;
+                    config.DefaultContainer = _containertype;
+                    config.SiteTemplate = _sitetemplatetype;
+
+                    ShowProgressIndicator();
+
+                    var installation = await InstallationService.Install(config);
+                    if (installation.Success)
+                    {
+                        var aliasname = config.Aliases.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)[0];
+                        var uri = new Uri(NavigationManager.Uri);
+                        NavigationManager.NavigateTo(uri.Scheme + "://" + aliasname, true);
+                    }
+                    else
+                    {
+                        await logger.LogError("Error Creating Site {Error}", installation.Message);
+                        AddModuleMessage(installation.Message, MessageType.Error);
+                    }
+                }
+            }
+            else
+            {
+                AddModuleMessage(string.Join(", ", duplicates.ToArray()) + " Already Used For Another Site", MessageType.Warning);
+            }
+        }
+        else
+        {
+            AddModuleMessage("You Must Provide A Tenant, Site Name, Alias, Default Theme/Container, And Site Template", MessageType.Warning);
+        }
+    }
+}

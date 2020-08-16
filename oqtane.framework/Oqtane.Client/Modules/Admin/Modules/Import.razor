@@ -1,0 +1,55 @@
+﻿@namespace Oqtane.Modules.Admin.Modules
+@inherits ModuleBase
+@inject NavigationManager NavigationManager
+@inject IModuleService ModuleService
+
+<table class="table table-borderless">
+    <tbody>
+        <tr>
+            <td>
+                <Label For="content" HelpText="Enter the module content">Content: </Label>
+            </td>
+            <td>
+                <textarea id="content" class="form-control" @bind="@_content" rows="5"></textarea>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<button type="button" class="btn btn-success" @onclick="ImportModule">Import</button>
+<NavLink class="btn btn-secondary" href="@NavigateUrl()">Cancel</NavLink>
+
+
+@code {
+    private string _content = string.Empty;
+
+    public override SecurityAccessLevel SecurityAccessLevel => SecurityAccessLevel.Admin;
+    public override string Title => "Import Module";
+
+    private async Task ImportModule()
+    {
+        if (_content != string.Empty)
+        {
+            try
+            {
+                bool success = await ModuleService.ImportModuleAsync(ModuleState.ModuleId, _content);
+                if (success)
+                {
+                    AddModuleMessage("Content Imported Successfully", MessageType.Success);
+                }
+                else
+                {
+                    AddModuleMessage("A Problem Was Encountered Importing Content. Please Ensure The Content Is Formatted Correctly For The Module.", MessageType.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                await logger.LogError(ex, "Error Importing Module {ModuleId} {Error}", ModuleState.ModuleId, ex.Message);
+                AddModuleMessage("Error Importing Module", MessageType.Error);
+            }
+        }
+        else
+        {
+            AddModuleMessage("You Must Enter Some Content To Import", MessageType.Warning);
+        }
+    }
+}

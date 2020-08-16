@@ -1,0 +1,64 @@
+﻿@namespace Oqtane.Modules.Controls
+@inherits ModuleControlBase
+@inject NavigationManager NavigationManager
+
+@if (!string.IsNullOrEmpty(_message))
+{
+    <div class="@_classname" role="alert">
+        @_message
+        @if (Type == MessageType.Error && UserSecurity.IsAuthorized(PageState.User, Constants.HostRole))
+        {
+            @((MarkupString)"&nbsp;&nbsp;")<NavLink href="@NavigateUrl("admin/log")">View Details</NavLink>
+        }
+    </div>
+    <br />
+}
+
+@code {
+    private string _message = string.Empty;
+    private string _classname = "alert alert-danger";
+
+    [Parameter]
+    public string Message { get; set; }
+
+    [Parameter]
+    public MessageType Type { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(Message))
+        {
+            _message = Message;
+            _classname = GetMessageType(Type);
+        }
+    }
+
+    public void SetModuleMessage(string message, MessageType type)
+    {
+        _message = message;
+        _classname = GetMessageType(type);
+        StateHasChanged();
+    }
+
+    private string GetMessageType(MessageType type)
+    {
+        var classname = string.Empty;
+        switch (type)
+        {
+            case MessageType.Success:
+                classname = "alert alert-success";
+                break;
+            case MessageType.Info:
+                classname = "alert alert-info";
+                break;
+            case MessageType.Warning:
+                classname = "alert alert-warning";
+                break;
+            case MessageType.Error:
+                classname = "alert alert-danger";
+                break;
+        }
+
+        return classname;
+    }
+}

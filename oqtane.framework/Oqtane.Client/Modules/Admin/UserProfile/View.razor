@@ -1,0 +1,212 @@
+﻿@namespace Oqtane.Modules.Admin.UserProfile
+@inherits ModuleBase
+@inject NavigationManager NavigationManager
+@inject IUserService UserService
+@inject INotificationService NotificationService
+
+@if (PageState.User != null)
+{
+    <table class="table table-borderless">
+        <tr>
+            <td>
+                <label class="control-label">@title: </label>
+            </td>
+            @if (title == "From")
+            {
+                <td>
+                    <input class="form-control" @bind="@username" readonly />
+                </td>
+            }
+            @if (title == "To")
+            {
+                <td>
+                    <input class="form-control" @bind="@username" />
+                </td>
+            }
+        </tr>
+        <tr>
+            <td>
+                <label class="control-label">Subject: </label>
+            </td>
+            @if (title == "From")
+            {
+                <td>
+                    <input class="form-control" @bind="@subject" readonly />
+                </td>
+            }
+            @if (title == "To")
+            {
+                <td>
+                    <input class="form-control" @bind="@subject" />
+                </td>
+            }
+        </tr>
+        @if (title == "From")
+        {
+            <tr>
+                <td>
+                    <label class="control-label">Date: </label>
+                </td>
+                <td>
+                    <input class="form-control" @bind="@createdon" readonly />
+                </td>
+            </tr>
+        }
+        @if (title == "From")
+        {
+            <tr>
+                <td>
+                    <label class="control-label">Message: </label>
+                </td>
+                <td>
+                    <textarea class="form-control" @bind="@body" rows="5" readonly />
+                </td>
+            </tr>
+        }
+        @if (title == "To")
+        {
+            <tr>
+                <td>
+                    <label class="control-label">Message: </label>
+                </td>
+                <td>
+                    <textarea class="form-control" @bind="@body" rows="5" />
+                </td>
+            </tr>
+        }
+    </table>
+
+
+    @if (reply != string.Empty)
+    {
+        <button type="button" class="btn btn-primary" @onclick="Send">Send</button> }
+    else
+    {
+        if (title == "From")
+        {
+            <button type="button" class="btn btn-primary" @onclick="Reply">Reply</button>}
+    }
+    <NavLink class="btn btn-secondary" href="@NavigateUrl()">Cancel</NavLink>
+    <br />
+    <br />
+    @if (title == "To")
+    {
+        <div class="control-group">
+            <label class="control-label">Original Message </label>
+            <textarea class="form-control" @bind="@reply" rows="5" readonly />
+        </div>
+        }
+    }
+
+@code {
+    private int notificationid;
+    private string title = string.Empty;
+    private string username = "";
+    private string subject = string.Empty;
+    private string createdon = string.Empty;
+    private string body = string.Empty;
+    private string reply = string.Empty;
+
+    public override SecurityAccessLevel SecurityAccessLevel => SecurityAccessLevel.View;
+    public override string Title => "View Notification";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            notificationid = Int32.Parse(PageState.QueryString["id"]);
+            Notification notification = await NotificationService.GetNotificationAsync(notificationid);
+            if (notification != null)
+            {
+                int userid = -1;
+                if (notification.ToUserId == PageState.User.UserId)
+                {
+                    title = "From";
+                    if (notification.FromUserId != null)
+                    {
+                        userid = notification.FromUserId.Value;
+                    }
+                }
+                else
+                {
+                    title = "To";
+                    if (notification.ToUserId != null)
+                    {
+                        userid = notification.ToUserId.Value;
+                    }
+                }
+                if (userid != -1)
+                {
+                    var user = await UserService.GetUserAsync(userid, PageState.Site.SiteId);
+                    if (user != null)
+                    {
+                        username = user.Username;
+                    }
+                }
+                if (username == "")
+                {
+                    username = "System";
+                }
+                subject = notification.Subject;
+                createdon = notification.CreatedOn.ToString();
+                body = notification.Body;
+            }
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Loading Users {Error}", ex.Message);
+            AddModuleMessage("Error Loading Users", MessageType.Error);
+        }
+    }
+
+    private void Reply()
+    {
+        title = "To";
+        if (!subject.Contains("RE:"))
+        {
+            subject = "RE: " + subject;
+        }
+        reply = body;
+        body = "\n\n____________________________________________\nSent: " + createdon + "\nSubject: " + subject + "\n\n" + body;
+        StateHasChanged();
+    }
+
+    private async Task Send()
+    {
+        var notification = new Notification();
+        try
+        {
+            var user = await UserService.GetUserAsync(username, PageState.Site.SiteId);
+            if (user != null)
+            {
+                notification.SiteId = PageState.Site.SiteId;
+                notification.FromUserId = PageState.User.UserId;
+                notification.FromDisplayName = PageState.User.DisplayName;
+                notification.FromEmail = PageState.User.Email;
+                notification.ToUserId = user.UserId;
+                notification.ToDisplayName = user.DisplayName;
+                notification.ToEmail = user.Email;
+                notification.Subject = subject;
+                notification.Body = body;
+                notification.ParentId = notificationid;
+                notification.CreatedOn = DateTime.UtcNow;
+                notification.IsDelivered = false;
+                notification.DeliveredOn = null;
+                notification.SendOn = DateTime.UtcNow;
+                notification = await NotificationService.AddNotificationAsync(notification);
+                await logger.LogInformation("Notification Created {Notification}", notification);
+                NavigationManager.NavigateTo(NavigateUrl());
+            }
+            else
+            {
+                AddModuleMessage("User Does Not Exist. Please Verify That The Username Provided Is Correct.", MessageType.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            await logger.LogError(ex, "Error Adding Notification {Notification} {Error}", notification, ex.Message);
+            AddModuleMessage("Error Adding Notification", MessageType.Error);
+        }
+    }
+}
+

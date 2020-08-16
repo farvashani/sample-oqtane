@@ -1,0 +1,212 @@
+﻿@namespace Oqtane.Modules.Controls
+@inherits ModuleControlBase
+@typeparam TableItem
+
+<p>
+    @if (Format == "Table")
+    {
+        <table class="@Class">
+            <thead>
+                <tr>@Header</tr>
+            </thead>
+            <tbody>
+                @foreach (var item in ItemList)
+                {
+                    <tr>@Row(item)</tr>
+                    @if (Detail != null)
+                    {
+                        <tr>@Detail(item)</tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+    @if (Format == "Grid")
+    {
+        <div class="@Class">
+            <div class="row">@Header</div>
+            @foreach (var item in ItemList)
+            {
+                <div class="row">@Row(item)</div>
+                @if (Detail != null)
+                {
+                    <div class="row">@Detail(item)</div>
+                }
+            }
+        </div>
+    }
+    <div class="mx-auto text-center">
+        @if (_page > _maxPages)
+        {
+            <button class="btn btn-secondary" @onclick=@(async () => SetPagerSize("back"))><span class="oi oi-media-skip-backward" title="back" aria-hidden="true"></span></button>
+        }
+        @if (_endPage > 1)
+        {
+            <button class="btn btn-secondary" @onclick=@(async () => NavigateToPage("previous"))><span class="oi oi-chevron-left" title="previous" aria-hidden="true"></span></button>
+            @for (int i = _startPage; i <= _endPage; i++)
+            {
+                var pager = i;
+                <button class="btn @((pager == _page) ? "btn-primary" : "btn-link")" @onclick=@(async () => UpdateList(pager))>
+                    @pager
+                </button>
+            }
+            <button class="btn btn-secondary" @onclick=@(async () => NavigateToPage("next"))><span class="oi oi-chevron-right" title="next" aria-hidden="true"></span></button>
+        }
+        @if (_endPage < _pages)
+        {
+            <button class="btn btn-secondary" @onclick=@(async () => SetPagerSize("forward"))><span class="oi oi-media-skip-forward" title="forward" aria-hidden="true"></span></button>
+        }
+        @if (_endPage > 1)
+        {
+            <span class="btn btn-link disabled">Page @_page of @_pages</span>
+        }
+    </div>
+</p>
+
+@code {
+    private int _pages = 0;
+    private int _page = 1;
+    private int _maxItems;
+    private int _maxPages;
+    private int _startPage;
+    private int _endPage;
+
+    [Parameter]
+    public string Format { get; set; }
+
+    [Parameter]
+    public RenderFragment Header { get; set; }
+
+    [Parameter]
+    public RenderFragment<TableItem> Row { get; set; }
+
+    [Parameter]
+    public RenderFragment<TableItem> Detail { get; set; }
+
+    [Parameter]
+    public IEnumerable<TableItem> Items { get; set; }
+
+    [Parameter]
+    public string PageSize { get; set; }
+
+    [Parameter]
+    public string DisplayPages { get; set; }
+
+    [Parameter]
+    public string Class { get; set; }
+
+    private IEnumerable<TableItem> ItemList { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrEmpty(Format))
+        {
+            Format = "Table";
+        }
+
+        if (string.IsNullOrEmpty(Class))
+        {
+            if (Format == "Table")
+            {
+                Class = "table table-borderless";
+            }
+            else
+            {
+                Class = "container";
+            }
+        }
+
+        if (string.IsNullOrEmpty(PageSize))
+        {
+            _maxItems = 10;
+        }
+        else
+        {
+            _maxItems = int.Parse(PageSize);
+        }
+
+        if (string.IsNullOrEmpty(DisplayPages))
+        {
+            _maxPages = 5;
+        }
+        else
+        {
+            _maxPages = int.Parse(DisplayPages);
+        }
+
+        if (Items != null)
+        {
+            ItemList = Items.Skip((_page - 1) * _maxItems).Take(_maxItems);
+            _pages = (int)Math.Ceiling(Items.Count() / (decimal)_maxItems);
+        }
+
+        SetPagerSize("forward");
+    }
+
+    public void UpdateList(int currentPage)
+    {
+        ItemList = Items.Skip((currentPage - 1) * _maxItems).Take(_maxItems);
+        _page = currentPage;
+
+        StateHasChanged();
+    }
+
+    public void SetPagerSize(string direction)
+    {
+        if (direction == "forward")
+        {
+            if (_endPage + 1 < _pages)
+            {
+                _startPage = _endPage + 1;
+            }
+            else
+            {
+                _startPage = 1;
+            }
+
+            if (_endPage + _maxPages < _pages)
+            {
+                _endPage = _startPage + _maxPages - 1;
+            }
+            else
+            {
+                _endPage = _pages;
+            }
+
+            StateHasChanged();
+        }
+        else if (direction == "back")
+        {
+            _endPage = _startPage - 1;
+            _startPage = _startPage - _maxPages;
+        }
+    }
+
+    public void NavigateToPage(string direction)
+    {
+        if (direction == "next")
+        {
+            if (_page < _pages)
+            {
+                if (_page == _endPage)
+                {
+                    SetPagerSize("forward");
+                }
+                _page += 1;
+            }
+        }
+        else if (direction == "previous")
+        {
+            if (_page > 1)
+            {
+                if (_page == _startPage)
+                {
+                    SetPagerSize("back");
+                }
+                _page -= 1;
+            }
+        }
+
+        UpdateList(_page);
+    }
+}

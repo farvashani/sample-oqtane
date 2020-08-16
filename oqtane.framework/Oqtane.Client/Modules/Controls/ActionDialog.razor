@@ -1,0 +1,158 @@
+﻿@namespace Oqtane.Modules.Controls
+@inherits ModuleControlBase
+
+@if (_visible)
+{
+    <div class="app-admin-modal">
+        <div class="modal" tabindex="-1" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@Header</h5>
+                        <button type="button" class="close" @onclick="DisplayModal" aria-label="Close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>@Message</p>
+                    </div>
+                    <div class="modal-footer">
+                        @if (!string.IsNullOrEmpty(Action))
+                        {
+                            <button type="button" class="@Class" @onclick="Confirm">@((MarkupString)_iconSpan) @Action</button>
+                        }
+                        <button type="button" class="btn btn-secondary" @onclick="DisplayModal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@if (_authorized)
+{
+    if (Disabled)
+    {
+        <button class="@Class" disabled>@((MarkupString)_iconSpan) @Text</button>
+    }
+    else
+    {
+        <button class="@Class" @onclick="DisplayModal">@((MarkupString)_iconSpan) @Text</button>
+    }
+}
+
+@code {
+    private bool _visible = false;
+    private bool _editmode = false;
+    private bool _authorized = false;
+    private string _iconSpan = string.Empty;
+
+    [Parameter]
+    public string Header { get; set; } // required
+
+    [Parameter]
+    public string Message { get; set; } // required
+
+    [Parameter]
+    public string Text { get; set; } // optional - defaults to Action if not specified
+
+    [Parameter]
+    public string Action { get; set; } // optional
+
+    [Parameter]
+    public SecurityAccessLevel? Security { get; set; } // optional - can be used to explicitly specify SecurityAccessLevel
+
+    [Parameter]
+    public string Class { get; set; } // optional
+
+    [Parameter]
+    public bool Disabled { get; set; } // optional
+
+    [Parameter]
+    public string EditMode { get; set; } // optional - specifies if an authorized user must be in edit mode to see the action - default is false
+
+    [Parameter]
+    public Action OnClick { get; set; } // required if an Action is specified - executes a method in the calling component
+
+    [Parameter]
+    public string IconName { get; set; } // optional - specifies an icon for the link - default is no icon
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrEmpty(Text))
+        {
+            Text = Action;
+        }
+        if (string.IsNullOrEmpty(Class))
+        {
+            Class = "btn btn-success";
+        }
+
+        if (!string.IsNullOrEmpty(EditMode))
+        {
+            _editmode = bool.Parse(EditMode);
+        }
+
+        if (!string.IsNullOrEmpty(IconName))
+        {
+            _iconSpan = $"<span class=\"oi oi-{IconName}\"></span>&nbsp;";
+        }
+
+        _authorized = IsAuthorized();
+    }
+
+    private bool IsAuthorized()
+    {
+        bool authorized = false;
+        if (PageState.EditMode || !_editmode)
+        {
+            SecurityAccessLevel security = SecurityAccessLevel.Host;
+            if (Security == null)
+            {
+                string typename = ModuleState.ModuleType.Replace(Utilities.GetTypeNameLastSegment(ModuleState.ModuleType, 0) + ",", Action + ",");
+                Type moduleType = Type.GetType(typename);
+                if (moduleType != null)
+                {
+                    var moduleobject = Activator.CreateInstance(moduleType) as IModuleControl;
+                    security = moduleobject.SecurityAccessLevel;
+                }
+                else
+                {
+                    security = SecurityAccessLevel.Anonymous; // occurs when an action does not have a corresponding module control
+                }
+            }
+            else
+            {
+                security = Security.Value;
+            }
+            switch (security)
+            {
+                case SecurityAccessLevel.Anonymous:
+                    authorized = true;
+                    break;
+                case SecurityAccessLevel.View:
+                    authorized = UserSecurity.IsAuthorized(PageState.User,PermissionNames.View, ModuleState.Permissions);
+                    break;
+                case SecurityAccessLevel.Edit:
+                    authorized = UserSecurity.IsAuthorized(PageState.User,PermissionNames.Edit, ModuleState.Permissions);
+                    break;
+                case SecurityAccessLevel.Admin:
+                    authorized = UserSecurity.IsAuthorized(PageState.User, Constants.AdminRole);
+                    break;
+                case SecurityAccessLevel.Host:
+                    authorized = UserSecurity.IsAuthorized(PageState.User, Constants.HostRole);
+                    break;
+            }
+        }
+        return authorized;
+    }
+
+    private void DisplayModal()
+    {
+        _visible = !_visible;
+        StateHasChanged();
+    }
+
+    private void Confirm()
+    {
+        DisplayModal();
+        OnClick();
+    }
+}
