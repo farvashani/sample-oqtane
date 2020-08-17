@@ -6,7 +6,7 @@ services:
   container_name: oqtane-web
   image: mkcsas/oqtane-app-web:3
   ports:
-  - 5111:5111
+  - "0.0.0.0:5999:5999"
   volumes:
   - ./src/:/work
 

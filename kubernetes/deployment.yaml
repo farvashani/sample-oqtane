@@ -20,4 +20,4 @@ spec:
         image: mkcsas/oqtane-app-web:3
         #imagePullPolicy: Always
         ports:
-        - containerPort: 5111
+        - containerPort: 5999
