@@ -211,4 +211,23 @@
         }
     }
 
+    protected override void OnInitialized()
+    {
+        _username = "sa";
+        _password = "Password1";
+        _hostPassword = _password;
+        _confirmPassword = _password;
+        //_serverName = "127.0.0.1,1433";
+
+        //Docker container IP
+        _serverName = "172.17.0.2,1433";
+
+        _hostEmail = "email@example.com";
+
+        string dt = DateTime.UtcNow.ToString("yyyyMMddHHmm");
+
+        _databaseName = "oqtane-" + dt.Substring(0, 4) + "-" + dt.Substring(4, 2) + "-" + dt.Substring(6, 2) + "-" + dt.Substring(8, 4);
+
+    }
+
 }

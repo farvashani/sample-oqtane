@@ -231,7 +231,7 @@ namespace Oqtane
             }
             // to allow install middleware it should be moved up
             app.ConfigureOqtaneAssemblies(env);
-            //app.UseHttpsRedirection();
+            app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseBlazorFrameworkFiles();
             app.UseRouting();

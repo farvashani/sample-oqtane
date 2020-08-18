@@ -1,14 +1,18 @@
 version: "3.4"
 services:
- octy:
+ app-oqtane:
   build:
    context: .
-  container_name: oqtane-web
-  image: mkcsas/oqtane-app-web:3
+  container_name: oqtane-app
+  image: mkcsas/app-oqtane:v2
   ports:
-  - "0.0.0.0:5999:5999"
-  volumes:
-  - ./oqtane.framework/:/app
+  - "0.0.0.0:6001:6001"
+ db:
+  container_name: oqtane-sql
+  image: mkcsas/oqtane-sql-base:v1.0.1
+  ports: 
+  - "1433:1433"
+    
 
 
 

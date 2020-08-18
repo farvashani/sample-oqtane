@@ -25,7 +25,7 @@ namespace Oqtane.Server
                 .UseConfiguration(new ConfigurationBuilder()
                     .AddCommandLine(args)
                     .Build())
-                .UseUrls("http://*:5999")
+                .UseUrls("http://*:6001")
                 .UseStartup<Startup>()
                 .Build();
     }
