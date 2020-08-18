@@ -1,14 +1,14 @@
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster as build
 
-WORKDIR .
+WORKDIR /work
 
 COPY ["/oqtane.framework/Oqtane.Server/Oqtane.Server.csproj", "Oqtane.Server/"]
 COPY ["/oqtane.framework/Oqtane.Client/Oqtane.Client.csproj", "Oqtane.Client/"]
 COPY ["/oqtane.framework/Oqtane.Shared/Oqtane.Shared.csproj", "Oqtane.Shared/"]
 
-RUN dotnet restore "Oqtane.Server/Oqtane.Server.csproj"
+RUN dotnet restore "/work/Oqtane.Server/Oqtane.Server.csproj"
 
-COPY /oqtane.framework .
+COPY /oqtane.framework /work
 
 RUN dotnet build "Oqtane.Server/Oqtane.Server.csproj" -c Release -o /work/build/
 

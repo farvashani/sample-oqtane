@@ -4,17 +4,15 @@ services:
   build:
    context: .
   container_name: oqtane-app
-  image: mkcsas/app-oqtane:v2
+  image: mkcsas/oqtane-app:v1
   ports:
-  - "0.0.0.0:6001:6001"
+  - "6001:6001"
  db:
   container_name: oqtane-sql
   image: mkcsas/oqtane-sql-base:v1.0.1
   ports: 
   - "1433:1433"
     
-
-
 
   #working_dir: /work
   #entrypoint: /bin/bash
